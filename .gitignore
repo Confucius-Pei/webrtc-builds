@@ -1,4 +1,3 @@
 *.local
-out
-depot_tools
+out/src/out
 .DS_Store
