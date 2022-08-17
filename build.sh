@@ -83,6 +83,7 @@ TARGET_CPU=${TARGET_CPU:-x64}
 echo "Host OS: $PLATFORM"
 echo "Target OS: $TARGET_OS"
 echo "Target CPU: $TARGET_CPU"
+echo "COMBINE_LIBRARIES: $COMBINE_LIBRARIES"
 
 echo Checking build environment dependencies
 check::build::env $PLATFORM "$TARGET_CPU"
