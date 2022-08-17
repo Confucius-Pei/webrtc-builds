@@ -127,7 +127,7 @@ package::prepare $PLATFORM $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $R
 if [ "$PACKAGE_AS_DEBIAN" = 1 ]; then
   package::debian $OUTDIR $PACKAGE_FILENAME $PACKAGE_NAME $PACKAGE_VERSION "$(debian-arch $TARGET_CPU)"
 else
-  package::archive $PLATFORM $OUTDIR $PACKAGE_FILENAME
+  #package::archive $PLATFORM $OUTDIR $PACKAGE_FILENAME
   package::manifest $PLATFORM $OUTDIR $PACKAGE_FILENAME
 fi
 
