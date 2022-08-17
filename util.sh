@@ -330,13 +330,15 @@ function combine::static() {
 #
 # $1: The platform type.
 # $2: The output directory.
+# $6: The src directory.
 function compile() {
   local platform="$1"
   local outdir="$2"
   local target_os="$3"
   local target_cpu="$4"
   local configs="$5"
-  local blacklist="$5"
+  local blacklist="$6"
+  local srcdir="$7"
 
   # Set default default common  and target args.
   # `rtc_include_tests=false`: Disable all unit tests
@@ -369,14 +371,14 @@ function compile() {
     [ $platform = 'linux' ] && common_args+=" use_sysroot=false linux_use_bundled_binutils=false use_custom_libcxx=false use_custom_libcxx_for_host=false"
   fi
 
-  pushd $outdir/src >/dev/null
+  pushd $srcdir/src >/dev/null
     for cfg in $configs; do
       [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
-      compile::ninja "out/$target_cpu/$cfg" "$common_args $target_args"
+      compile::ninja "$outdir/$target_cpu/$cfg" "$common_args $target_args"
 
       if [ $COMBINE_LIBRARIES = 1 ]; then
         # Method 1: Merge the static .a/.lib libraries.
-        combine::static $platform "out/$target_cpu/$cfg" libwebrtc_full
+        combine::static $platform "$outdir/$target_cpu/$cfg" libwebrtc
       fi 
     done
   popd >/dev/null
@@ -390,6 +392,7 @@ function compile() {
 # $4: The project's resource dirctory.
 # $5: The build configurations.
 # $6: The revision number.
+# $7: The src directory.
 function package::prepare() {
   local platform="$1"
   local outdir="$2"
@@ -397,6 +400,7 @@ function package::prepare() {
   local resource_dir="$4"
   local configs="$5"
   local revision_number="$6"
+  local srcdir="$7"
   
   if [ $platform = 'mac' ]; then
     CP='gcp'
@@ -404,10 +408,10 @@ function package::prepare() {
     CP='cp'
   fi
 
-  pushd $outdir >/dev/null
+   # Create directory structure
+  mkdir -p $outdir/$package_filename/include $outdir/packages
 
-    # Create directory structure
-    mkdir -p $package_filename/include packages
+  pushd $srcdir >/dev/null
     pushd src >/dev/null
 
       # Find and copy header files
@@ -433,8 +437,8 @@ function package::prepare() {
 
     # Find and copy libraries
     for cfg in $configs; do
-      mkdir -p $package_filename/lib/$TARGET_CPU/$cfg
-      pushd src/out/$TARGET_CPU/$cfg >/dev/null
+      mkdir -p $outdir/$TARGET_CPU/$cfg
+      pushd $outdir/$TARGET_CPU/$cfg >/dev/null
         mkdir -p $outdir/$package_filename/lib/$TARGET_CPU/$cfg
         if [ $COMBINE_LIBRARIES = 1 ]; then
           find . -name '*.so' -o -name '*.dll' -o -name '*.lib' -o -name '*.a' -o -name '*.jar' | \
@@ -451,7 +455,7 @@ function package::prepare() {
     # Create pkgconfig files on linux
     if [ $platform = 'linux' ]; then
       for cfg in $configs; do
-        mkdir -p $package_filename/lib/$TARGET_CPU/$cfg/pkgconfig
+        mkdir -p $outdir/$package_filename/lib/$TARGET_CPU/$cfg/pkgconfig
         CONFIG=$cfg envsubst '$CONFIG' < $resource_dir/pkgconfig/libwebrtc_full.pc.in > \
           $package_filename/lib/$TARGET_CPU/$cfg/pkgconfig/libwebrtc_full.pc
       done

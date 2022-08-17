@@ -17,6 +17,7 @@ Usage:
 WebRTC automated build script.
 
 OPTIONS:
+   -o SRCDIR      source directory. Default is 'webrtc_src'
    -o OUTDIR      Output directory. Default is 'out'
    -b BRANCH      Latest revision on git branch. Overrides -r. Common branch names are 'branch-heads/nn', where 'nn' is the release number.
    -r REVISION    Git SHA revision. Default is latest revision.
@@ -35,6 +36,7 @@ EOF
 while getopts :o:b:r:t:c:l:e:n:xDd OPTION; do
   case $OPTION in
   o) OUTDIR=$OPTARG ;;
+  s) SRCDIR=$OPTARG ;;
   b) BRANCH=$OPTARG ;;
   r) REVISION=$OPTARG ;;
   t) TARGET_OS=$OPTARG ;;
@@ -51,6 +53,7 @@ done
 
 BUILD_ONLY=1
 OUTDIR=${OUTDIR:-out}
+SRCDIR=${SRCDIR:-webrtc_src}
 BRANCH=${BRANCH:-}
 BLACKLIST=${BLACKLIST:-}
 ENABLE_RTTI=${ENABLE_RTTI:-1}
@@ -75,10 +78,15 @@ PATH=$DEPOT_TOOLS_DIR:$DEPOT_TOOLS_DIR/python276_bin:$PATH
 
 mkdir -p $OUTDIR
 OUTDIR=$(cd $OUTDIR && pwd -P)
+mkdir -p $SRCDIR
+SRCDIR=$(cd $SRCDIR && pwd -P)
 
 detect-platform
 TARGET_OS=${TARGET_OS:-$PLATFORM}
 TARGET_CPU=${TARGET_CPU:-x64}
+
+echo "SRCDIR: $SRCDIR"
+echo "OUTDIR: $OUTDIR"
 
 echo "Host OS: $PLATFORM"
 echo "Target OS: $TARGET_OS"
@@ -106,17 +114,17 @@ echo "Associated revision number: $REVISION_NUMBER"
 
 if [ $BUILD_ONLY = 0 ]; then
   echo "Checking out WebRTC revision (this will take a while): $REVISION"
-  checkout "$TARGET_OS" $OUTDIR $REVISION
+  checkout "$TARGET_OS" $SRCDIR $REVISION
 
   echo Checking WebRTC dependencies
-  check::webrtc::deps $PLATFORM $OUTDIR "$TARGET_OS"
+  check::webrtc::deps $PLATFORM $SRCDIR "$TARGET_OS"
 
   echo Patching WebRTC source
-  patch $PLATFORM $OUTDIR $ENABLE_RTTI
+  patch $PLATFORM $SRCDIR $ENABLE_RTTI
 fi
 
 echo Compiling WebRTC
-compile $PLATFORM $OUTDIR "$TARGET_OS" "$TARGET_CPU" "$CONFIGS" "$BLACKLIST"
+compile $PLATFORM $OUTDIR "$TARGET_OS" "$TARGET_CPU" "$CONFIGS" "$BLACKLIST" $SRCDIR
 
 # Default PACKAGE_FILENAME is <projectname>-<rev-number>-<short-rev-sha>-<target-os>-<target-cpu>
 PACKAGE_FILENAME=$(interpret-pattern "$PACKAGE_FILENAME_PATTERN" "$PLATFORM" "$OUTDIR" "$TARGET_OS" "$TARGET_CPU" "$BRANCH" "$REVISION" "$REVISION_NUMBER")
@@ -124,12 +132,12 @@ PACKAGE_NAME=$(interpret-pattern "$PACKAGE_NAME_PATTERN" "$PLATFORM" "$OUTDIR" "
 PACKAGE_VERSION=$(interpret-pattern "$PACKAGE_VERSION_PATTERN" "$PLATFORM" "$OUTDIR" "$TARGET_OS" "$TARGET_CPU" "$BRANCH" "$REVISION" "$REVISION_NUMBER")
 
 echo "Packaging WebRTC: $PACKAGE_FILENAME"
-package::prepare $PLATFORM $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $REVISION_NUMBER
+package::prepare $PLATFORM $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $REVISION_NUMBER $SRCDIR
 if [ "$PACKAGE_AS_DEBIAN" = 1 ]; then
   package::debian $OUTDIR $PACKAGE_FILENAME $PACKAGE_NAME $PACKAGE_VERSION "$(debian-arch $TARGET_CPU)"
 else
   #package::archive $PLATFORM $OUTDIR $PACKAGE_FILENAME
-  package::manifest $PLATFORM $OUTDIR $PACKAGE_FILENAME
+  #package::manifest $PLATFORM $OUTDIR $PACKAGE_FILENAME
 fi
 
 echo Build successful

@@ -1,5 +1,5 @@
 *.local
-out/src/out
+out
 .DS_Store
 out/.webrtcbuilds_target_os
 out/.gclient_previous_sync_commits
