@@ -83,7 +83,7 @@ function init-msenv() {
   pushd "$vcvars_path" >/dev/null
     OLDIFS=$IFS
     IFS=$'\n'
-    msvars=$(cmd //c "VsDevCmd.bat $TARGET_CPU && set")
+    msvars=$(cmd //c "VsDevCmd.bat && set")
 
     for line in $msvars; do
       case $line in
@@ -309,8 +309,7 @@ function combine::static() {
     # Combine all objects into one static library
     case $platform in
     win)
-      # TODO: Support VS 2017
-      "$VS140COMNTOOLS../../VC/bin/lib" /OUT:$libname.lib @$libname.list
+      lib.exe /OUT:$libname.lib @$libname.list
       ;;
     *)
       # Combine *.a static libraries

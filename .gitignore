@@ -22,3 +22,5 @@ out/.cipd/pkgs/0/W8zk4v3t7T9LDNmC04YZxoTNb9sEadKyQQVSCpmn7joC/.cipdpkg/manifest.
 out/.cipd/pkgs/0/description.json
 out/.cipd/pkgs/0/_current.txt
 out/.cipd/pkgs/0/.lock
+out/webrtc-34375-e99f687-win-x86
+out/webrtc-34375-e99f687-win-x64
