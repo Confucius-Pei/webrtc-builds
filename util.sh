@@ -72,12 +72,10 @@ function init-msenv() {
 
   # Rudimentary support for VS2017 in default install location due to
   # lack of VS1S0COMNTOOLS environment variable.
-  if [ -d "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/Build" ]; then
-    vcvars_path="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/Build"
-  elif [ ! -z "$VS140COMNTOOLS" ]; then
-    vcvars_path="${VS140COMNTOOLS}../../VC"
+  if [ -d "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/Tools" ]; then
+    vcvars_path="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/Tools"
   else
-    echo "Building under Microsoft Windows requires Microsoft Visual Studio 2015 Update 3"
+    echo "Building under Microsoft Windows requires Microsoft Visual Studio 2017"
     exit 1
   fi
 
@@ -85,7 +83,7 @@ function init-msenv() {
   pushd "$vcvars_path" >/dev/null
     OLDIFS=$IFS
     IFS=$'\n'
-    msvars=$(cmd //c "vcvarsall.bat $TARGET_CPU && set")
+    msvars=$(cmd //c "VsDevCmd.bat $TARGET_CPU && set")
 
     for line in $msvars; do
       case $line in
@@ -275,73 +273,6 @@ function compile::ninja() {
   popd >/dev/null
 }
 
-# Combine build artifact objects into one library.
-#
-# The Microsoft Windows tools use different file extensions than the other tools:
-# '.obj' as the object file extension, instead of '.o'
-# '.lib' as the static library file extension, instead of '.a'
-# '.dll' as the shared library file extension, instead of '.so'
-#
-# The Microsoft Windows tools have different names than the other tools:
-# 'lib' as the librarian, instead of 'ar'. 'lib' must be found through the path
-# variable $VS140COMNTOOLS.
-#
-# $1: The platform
-# $2: The list of object file paths to be combined
-# $3: The output library name
-function combine::objects() {
-  local platform="$1"
-  local outputdir="$2"
-  local libname="libwebrtc_full"
-
-  # if [ $platform = 'win' ]; then
-  #   local extname='obj'
-  # else
-  #   local extname='o'
-  # fi
-
-  pushd $outputdir >/dev/null
-    rm -f $libname.*
-
-    # Prevent blacklisted objects such as ones containing a main function from
-    # being combined.
-    # Blacklist objects from video_capture_external and device_info_external so
-    # that the internal video capture module implementations get linked.
-    # unittest_main because it has a main function defined.
-    local blacklist="unittest|examples|tools|yasm/|protobuf_lite|main.o|video_capture_external.o|device_info_external.o"
-
-    # Method 1: Collect all .o files from .ninja_deps and some missing intrinsics
-    local objlist=$(strings .ninja_deps | grep -o ".*\.o")
-    local extras=$(find \
-      obj/third_party/libvpx/libvpx_* \
-      obj/third_party/libjpeg_turbo/simd_asm \
-      obj/third_party/boringssl/boringssl_asm -name "*\.o")
-    echo "$objlist" | tr ' ' '\n' | grep -v -E $blacklist >$libname.list
-    echo "$extras" | tr ' ' '\n' | grep -v -E $blacklist >>$libname.list
-
-    # Method 2: Collect all .o files from output directory
-    # local objlist=$(find . -name '*.o' | grep -v -E $blacklist)
-    # echo "$objlist" >$libname.list
-
-    # Combine all objects into one static library
-    case $platform in
-    win)
-      # TODO: Support VS 2017
-      "$VS140COMNTOOLS../../VC/bin/lib" /OUT:$libname.lib @$libname.list
-      ;;
-    *)
-      # Combine *.o objects using ar
-      cat $libname.list | xargs ar -crs $libname.a
-
-      # Combine *.o objects into a thin library using ar
-      # cat $libname.list | xargs ar -ccT $libname.a
-
-      ranlib $libname.a
-      ;;
-    esac
-  popd >/dev/null
-}
-
 # Combine built static libraries into one library.
 #
 # NOTE: This method is currently preferred since combining .o objects is
@@ -353,8 +284,7 @@ function combine::objects() {
 # '.dll' as the shared library file extension, instead of '.so'
 #
 # The Microsoft Windows tools have different names than the other tools:
-# 'lib' as the librarian, instead of 'ar'. 'lib' must be found through the path
-# variable $VS140COMNTOOLS.
+# 'lib' as the librarian, instead of 'ar'.
 #
 # $1: The platform
 # $2: The list of object file paths to be combined
@@ -448,10 +378,6 @@ function compile() {
       if [ $COMBINE_LIBRARIES = 1 ]; then
         # Method 1: Merge the static .a/.lib libraries.
         combine::static $platform "out/$target_cpu/$cfg" libwebrtc_full
-        
-        # Method 2: Merge .o/.obj objects to create the library, although results 
-        # have been inconsistent so the static merging method is default.
-        # combine::objects $platform "out/$target_cpu/$cfg" libwebrtc_full
       fi 
     done
   popd >/dev/null
