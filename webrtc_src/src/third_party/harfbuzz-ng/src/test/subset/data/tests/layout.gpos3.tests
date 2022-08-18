@@ -1,0 +1,13 @@
+FONTS:
+gpos3_font3.otf
+
+PROFILES:
+default.txt
+retain-gids.txt
+
+SUBSETS:
+()
+(+
+)+
+ABC
+*
