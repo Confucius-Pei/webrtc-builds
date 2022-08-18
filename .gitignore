@@ -26,10 +26,6 @@ out/webrtc-34375-e99f687-win-x86
 out/webrtc-34375-e99f687-win-x64
 
 webrtc_src/src/out
-webrtc_src/.webrtcbuilds_target_os
-webrtc_src/.gclient_previous_sync_commits
-webrtc_src/.gclient_entries
-webrtc_src/.gclient
 webrtc_src/.cipd/tagcache.db
 webrtc_src/.cipd/pkgs/3/rmh3ifN-bRuooJoOYpCPn9vbuL4wlO-ptBX0msk4d1YC/.cipdpkg/manifest.json
 webrtc_src/.cipd/pkgs/3/description.json
@@ -47,5 +43,3 @@ webrtc_src/.cipd/pkgs/0/W8zk4v3t7T9LDNmC04YZxoTNb9sEadKyQQVSCpmn7joC/.cipdpkg/ma
 webrtc_src/.cipd/pkgs/0/description.json
 webrtc_src/.cipd/pkgs/0/_current.txt
 webrtc_src/.cipd/pkgs/0/.lock
-webrtc_src/webrtc-34375-e99f687-win-x86
-webrtc_src/webrtc-34375-e99f687-win-x64
