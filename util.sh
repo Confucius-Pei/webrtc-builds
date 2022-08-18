@@ -72,15 +72,15 @@ function init-msenv() {
 
   # Rudimentary support for VS2017 in default install location due to
   # lack of VS1S0COMNTOOLS environment variable.
-  if [ -d "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/Tools" ]; then
-    vcvars_path="C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/Common7/Tools"
+  if [ -d "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools" ]; then
+    VsDevCmd_path="C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools"
   else
-    echo "Building under Microsoft Windows requires Microsoft Visual Studio 2017"
+    echo "Building under Microsoft Windows requires Microsoft Visual Studio 2019"
     exit 1
   fi
 
   export DEPOT_TOOLS_WIN_TOOLCHAIN=0
-  pushd "$vcvars_path" >/dev/null
+  pushd "$VsDevCmd_path" >/dev/null
     OLDIFS=$IFS
     IFS=$'\n'
     msvars=$(cmd //c "VsDevCmd.bat && set")
