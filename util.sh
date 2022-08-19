@@ -289,7 +289,7 @@ function package::prepare() {
   fi
 
    # Create directory structure
-  mkdir -p $outdir/$package_filename/include $outdir/packages
+  mkdir -p $outdir/$package_filename/include
 
   pushd $srcdir >/dev/null
     pushd src >/dev/null
