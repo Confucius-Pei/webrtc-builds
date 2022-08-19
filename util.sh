@@ -21,31 +21,6 @@ function clean() {
   rm -rf $outdir/* $outdir/.gclient*
 }
 
-# Make sure depot tools are present.
-#
-# $1: The platform type.
-# $2: The depot tools url.
-# $3: The depot tools directory.
-function check::depot-tools() {
-  local platform="$1"
-  local depot_tools_url="$2"
-  local depot_tools_dir="$3"
-
-  if [ ! -d $depot_tools_dir ]; then
-    git clone -q $depot_tools_url $depot_tools_dir
-    if [ $platform = 'win' ]; then
-      # run gclient.bat to get python
-      pushd $depot_tools_dir >/dev/null
-      ./gclient.bat
-      popd >/dev/null
-    fi
-  else
-    pushd $depot_tools_dir >/dev/null
-      git reset --hard -q
-    popd >/dev/null
-  fi
-}
-
 # Make sure a package is installed. Depends on sudo to be installed first.
 #
 # $1: The name of the package

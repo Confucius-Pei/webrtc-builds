@@ -79,9 +79,6 @@ echo "COMBINE_LIBRARIES: $COMBINE_LIBRARIES"
 echo Checking build environment dependencies
 check::build::env $PLATFORM "$TARGET_CPU"
 
-echo Checking depot-tools
-check::depot-tools $PLATFORM $DEPOT_TOOLS_URL $DEPOT_TOOLS_DIR
-
 echo Compiling WebRTC
 compile $PLATFORM $OUTDIR "$TARGET_OS" "$TARGET_CPU" "$CONFIGS" "$BLACKLIST" $SRCDIR
 
