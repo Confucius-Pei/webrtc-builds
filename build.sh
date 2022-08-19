@@ -17,7 +17,6 @@ Usage:
 WebRTC automated build script.
 
 OPTIONS:
-   -t TARGET OS   The target os for cross-compilation. Default is the host OS such as 'linux', 'mac', 'win'. Other values can be 'android', 'ios'.
    -c TARGET CPU  The target cpu for cross-compilation. Default is 'x64'. Other values can be 'x86', 'arm64', 'arm'.
    -n CONFIGS     Build configurations, space-separated. Default is 'Debug Release'. Other values can be 'Debug', 'Release'.
    -d             Debug mode. Print all executed commands.
@@ -25,9 +24,8 @@ OPTIONS:
 EOF
 }
 
-while getopts :t:c:n:d OPTION; do
+while getopts :c:n:d OPTION; do
   case $OPTION in
-  t) TARGET_OS=$OPTARG ;;
   c) TARGET_CPU=$OPTARG ;;
   n) CONFIGS=$OPTARG ;;
   d) DEBUG=1 ;;
@@ -48,10 +46,8 @@ DEBUG=${DEBUG:-0}
 CONFIGS=${CONFIGS:-Debug Release}
 COMBINE_LIBRARIES=${COMBINE_LIBRARIES:-1}
 PACKAGE_AS_DEBIAN=${PACKAGE_AS_DEBIAN:-0}
-PACKAGE_FILENAME_PATTERN=${PACKAGE_FILENAME_PATTERN:-"webrtc-%to%-%tc%"}
+PACKAGE_FILENAME_PATTERN=${PACKAGE_FILENAME_PATTERN:-"webrtc-%p%-%tc%"}
 PACKAGE_NAME_PATTERN=${PACKAGE_NAME_PATTERN:-"webrtc"}
-REPO_URL="https://chromium.googlesource.com/external/webrtc"
-DEPOT_TOOLS_URL="https://chromium.googlesource.com/chromium/tools/depot_tools.git"
 DEPOT_TOOLS_DIR=$DIR/depot_tools
 TOOLS_DIR=$DIR/tools
 PATH=$DEPOT_TOOLS_DIR:$DEPOT_TOOLS_DIR/python276_bin:$PATH
@@ -82,8 +78,7 @@ check::build::env $PLATFORM "$TARGET_CPU"
 echo Compiling WebRTC
 compile $PLATFORM $OUTDIR "$TARGET_OS" "$TARGET_CPU" "$CONFIGS" "$BLACKLIST" $SRCDIR
 
-# Default PACKAGE_FILENAME is <projectname>-<rev-number>-<short-rev-sha>-<target-os>-<target-cpu>
-PACKAGE_FILENAME=$(interpret-pattern "$PACKAGE_FILENAME_PATTERN" "$PLATFORM" "$OUTDIR" "$TARGET_OS" "$TARGET_CPU")
+PACKAGE_FILENAME=$(interpret-pattern "$PACKAGE_FILENAME_PATTERN" "$PLATFORM" "$TARGET_CPU")
 
 echo "Packaging WebRTC: $PACKAGE_FILENAME"
 package::prepare $PLATFORM $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $SRCDIR

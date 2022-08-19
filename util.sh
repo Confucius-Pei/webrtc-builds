@@ -340,23 +340,12 @@ function package::prepare() {
 }
 
 # This interprets a pattern and returns the interpreted one.
-# $1: The pattern.
-# $2: The output directory.
-# $3: The platform type.
-# $4: The target os for cross-compilation.
-# $5: The target cpu for cross-compilation.
-# $6: The branch.
-# $7: The revision.
-# $8: The revision number.
 function interpret-pattern() {
   local pattern="$1"
   local platform="$2"
-  local outdir="$3"
-  local target_os="$4"
-  local target_cpu="$5"
+  local target_cpu="$3"
 
   pattern=${pattern//%p%/$platform}
-  pattern=${pattern//%to%/$target_os}
   pattern=${pattern//%tc%/$target_cpu}
 
   echo "$pattern"
