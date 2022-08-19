@@ -1,75 +1,29 @@
-# WebRTC Automated Builds
+# WebRTC 编译all in one
 
-[![CircleCI](https://circleci.com/gh/sourcey/webrtc-builds.svg?style=svg)](https://circleci.com/gh/sourcey/webrtc-builds)
+fork的项目，详细readme可以参考原项目
 
-These cross platform build scripts automate the hard work of building and packaging WebRTC. Big thanks to @vsimon for laying the foundation for these scripts.
+## 改动点
 
-## Supported platforms
+1. 把所有源代码都上传到了github，不需要去其他地方拉代码了
+2. 源代码不会更新了，固定在了某个版本上，哪个版本我也没看.不过可以自己下载一个版本，覆盖本项目里面的
+3. vs的路径写死了2019的安装路径，可以参考init-msenv脚本函数
+4. 编译需要debuging tools for windows,具体安装可以google或百度
+5. 改动只试了windows 10，其他的没事
 
-* **OSX**: [Homebrew](http://brew.sh/) recommend. Build for 'mac' and 'ios'.
-* **Windows**: Visual Studio Community 2015 Update 3 or newer
-with a bash shell such as [Git for Windows](https://msysgit.github.io) or [MSYS](http://www.mingw.org/wiki/msys)
-installed.
-* **Linux**: Debian or Ubuntu flavour with `apt-get` available. Build for 'linux' and 'android'.
+## 编译
 
-## Usage
-
-To build the latest version of WebRTC just type:
-
-```
+``` sh
 # Build latest WebRTC for current platform:
 ./build.sh
 
-# To compile a specific branch with both x64 and x86 libraries you would run:
-./build.sh -c x64 -b branch-heads/66
-./build.sh -c x86 -b branch-heads/66 -x
-
-# To cross compile both x64 and x86 libraries for iOS you would run (on MacOS):
-./build.sh -c x64 -t ios
-./build.sh -c x86 -t ios -x
+# To compile with x86 libraries you would run:
+./build.sh -c x86
 ```
-
-Or with options:
-
-```
-Usage:
-   $0 [OPTIONS]
-
-WebRTC automated build script.
-
-OPTIONS:
-   -o OUTDIR      Output directory. Default is 'out'
-   -b BRANCH      Latest revision on git branch. Overrides -r. Common branch names are 'branch-heads/nn', where 'nn' is the release number.
-   -r REVISION    Git SHA revision. Default is latest revision.
-   -t TARGET OS   The target os for cross-compilation. Default is the host OS such as 'linux', 'mac', 'win'. Other values can be 'android', 'ios'.
-   -c TARGET CPU  The target cpu for cross-compilation. Default is 'x64'. Other values can be 'x86', 'arm64', 'arm'.
-   -l BLACKLIST   List *.o objects to exclude from the static library.
-   -e             Compile WebRTC with RTII enabled.
-   -f             Build only mode. Skip repo sync and dependency checks, just build, compile and package.
-   -d             Debug mode. Print all executed commands.
-   -h             Show this message
-EOF
-```
-
-The output packages will be saved to `{OUTDIR}/webrtcbuilds-<rev>-<sha>-<target-os>-<target-cpu>.<ext>`, where `<rev>` is the revision number of the commit, `<sha>` is the short git SHA
-of the commit, and `<target-os>-<target-cpu>` is the OS (linux, mac, win) and CPU (x64, x86) of the target environment.
-
-On Windows `7-Zip` is used for compressing packages, which produces vastly superiour output file size. On mac and linux the output file is `tar.gz`.
 
 ## Running tests
 
 Once you have compiled the libraries you can run a quick compile test to ensure build integrity:
 
-```
+``` sh
 ./test/run_tests.sh out/webrtc-17657-02ba69d-linux-x64
 ```
-
-## Further reading
-
-The following links point to official WebRTC related documentation:
-
-* [https://webrtc.org/native-code/development/](https://webrtc.org/native-code/development/)
-* [https://webrtc.org/native-code/development/prerequisite-sw/](https://webrtc.org/native-code/development/prerequisite-sw/)
-* [http://dev.chromium.org/developers/how-tos/install-depot-tools](http://dev.chromium.org/developers/how-tos/install-depot-tools)
-* [https://chromium.googlesource.com/chromium/src/+/master/docs/windows_build_instructions.md](https://chromium.googlesource.com/chromium/src/+/master/docs/windows_build_instructions.md)
-* [https://chromium.googlesource.com/chromium/src/+/master/tools/gn/docs/quick_start.md](https://chromium.googlesource.com/chromium/src/+/master/tools/gn/docs/quick_start.md)

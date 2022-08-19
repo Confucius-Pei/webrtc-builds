@@ -399,8 +399,7 @@ function package::prepare() {
   local package_filename="$3"
   local resource_dir="$4"
   local configs="$5"
-  local revision_number="$6"
-  local srcdir="$7"
+  local srcdir="$6"
   
   if [ $platform = 'mac' ]; then
     CP='gcp'
@@ -414,12 +413,7 @@ function package::prepare() {
   pushd $srcdir >/dev/null
     pushd src >/dev/null
 
-      # Find and copy header files
-      local header_source_dir=webrtc
-      
-      # Revision 19846 moved src/webrtc to src/
-      # https://webrtc.googlesource.com/src/+/92ea95e34af5966555903026f45164afbd7e2088
-      [ $revision_number -ge 19846 ] && header_source_dir=.
+      local header_source_dir=.
 
       # Copy header files, skip third_party dir
       find $header_source_dir -path './third_party' -prune -o -type f \( -name '*.h' \) -print | \
@@ -556,7 +550,6 @@ function package::manifest() {
   "file": "$OUTFILE",
   "date": "$(current-rev-date)",
   "branch": "${BRANCH}",
-  "revision": "${REVISION_NUMBER}",
   "sha": "${REVISION}",
   "crc": "$(file-crc $OUTFILE)",
   "target_os": "${TARGET_OS}",
@@ -602,20 +595,14 @@ function interpret-pattern() {
   local outdir="$3"
   local target_os="$4"
   local target_cpu="$5"
-  local branch="$6"
-  local revision="$7"
-  local revision_number="$8"
+
   local debian_arch="$(debian-arch $target_cpu)"
   local short_revision="$(short-rev $revision)"
 
   pattern=${pattern//%p%/$platform}
   pattern=${pattern//%to%/$target_os}
   pattern=${pattern//%tc%/$target_cpu}
-  pattern=${pattern//%b%/$branch}
-  pattern=${pattern//%r%/$revision}
-  pattern=${pattern//%rn%/$revision_number}
   pattern=${pattern//%da%/$debian_arch}
-  pattern=${pattern//%sr%/$short_revision}
 
   echo "$pattern"
 }
