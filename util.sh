@@ -232,7 +232,8 @@ function compile() {
 
   # Static vs Dynamic CRT: When `is_component_build` is false static CTR will be
   # enforced.By default Debug builds are dynamic and Release builds are static.
-  [ $ENABLE_STATIC_LIBS = 1 ] && common_args+=" is_component_build=false"
+  #[ $ENABLE_STATIC_LIBS = 1 ] && common_args+=" is_component_build=false"
+  common_args+=" is_component_build=false"
 
   # `enable_iterator_debugging=false`: Disable libstdc++ debugging facilities
   # unless all your compiled applications and dependencies define _GLIBCXX_DEBUG=1.
