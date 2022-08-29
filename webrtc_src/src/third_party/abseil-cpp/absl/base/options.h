@@ -67,12 +67,6 @@
 #ifndef ABSL_BASE_OPTIONS_H_
 #define ABSL_BASE_OPTIONS_H_
 
-// Include a standard library header to allow configuration based on the
-// standard library in use.
-#ifdef __cplusplus
-#include <ciso646>
-#endif
-
 // -----------------------------------------------------------------------------
 // Type Compatibility Options
 // -----------------------------------------------------------------------------
@@ -233,6 +227,6 @@
 // checks enabled by this option may abort the program in a different way and
 // log additional information when `NDEBUG` is not defined.
 
-#define ABSL_OPTION_HARDENED 1
+#define ABSL_OPTION_HARDENED 0
 
 #endif  // ABSL_BASE_OPTIONS_H_

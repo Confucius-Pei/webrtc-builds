@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -51,10 +50,10 @@ cc_library(
         "internal/program_name.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     visibility = [
         "//absl/flags:__pkg__",
+        "//absl/log:__pkg__",
     ],
     deps = [
         ":path_util",
@@ -75,7 +74,6 @@ cc_library(
         "usage_config.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":path_util",
@@ -96,7 +94,6 @@ cc_library(
         "marshalling.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         "//absl/base:config",
@@ -104,6 +101,7 @@ cc_library(
         "//absl/base:log_severity",
         "//absl/strings",
         "//absl/strings:str_format",
+        "//absl/types:optional",
     ],
 )
 
@@ -116,8 +114,10 @@ cc_library(
         "internal/commandlineflag.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    visibility = [
+        "//visibility:private",
+    ],
     deps = [
         "//absl/base:config",
         "//absl/base:fast_type_id",
@@ -133,7 +133,6 @@ cc_library(
         "commandlineflag.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":commandlineflag_internal",
@@ -175,7 +174,6 @@ cc_library(
         "reflection.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":commandlineflag",
@@ -200,7 +198,6 @@ cc_library(
         "internal/sequence_lock.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     visibility = ["//absl/base:__subpackages__"],
     deps = [
@@ -212,6 +209,7 @@ cc_library(
         "//absl/base",
         "//absl/base:config",
         "//absl/base:core_headers",
+        "//absl/base:dynamic_annotations",
         "//absl/memory",
         "//absl/meta:type_traits",
         "//absl/strings",
@@ -224,6 +222,7 @@ cc_library(
     name = "flag",
     srcs = [
         "flag.cc",
+        "internal/flag_msvc.inc",
     ],
     hdrs = [
         "declare.h",
@@ -251,7 +250,6 @@ cc_library(
         "internal/usage.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     visibility = [
         "//absl/flags:__pkg__",
@@ -281,7 +279,6 @@ cc_library(
         "usage.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":usage_internal",
@@ -300,7 +297,6 @@ cc_library(
         "parse.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":commandlineflag",
@@ -331,6 +327,11 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = [
+        "no_test_android",
+        "no_test_ios",
+        "no_test_wasm",
+    ],
     deps = [
         ":commandlineflag",
         ":commandlineflag_internal",
@@ -367,6 +368,11 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = [
+        "no_test_android",
+        "no_test_ios",
+        "no_test_wasm",
+    ],
     deps = [
         ":config",
         ":flag",
@@ -428,6 +434,11 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = [
+        "no_test_android",
+        "no_test_ios",
+        "no_test_wasm",
+    ],
     deps = [
         ":flag",
         ":parse",
@@ -463,6 +474,7 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = ["no_test_wasm"],
     deps = [
         ":program_name",
         "//absl/strings",
@@ -478,6 +490,11 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = [
+        "no_test_android",
+        "no_test_ios",
+        "no_test_wasm",
+    ],
     deps = [
         ":commandlineflag_internal",
         ":flag",
@@ -500,6 +517,7 @@ cc_test(
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
     shard_count = 31,
+    tags = ["no_test_wasm"],
     deps = [
         ":flag_internal",
         "//absl/base",
@@ -534,6 +552,11 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
+    tags = [
+        "no_test_android",
+        "no_test_ios",
+        "no_test_wasm",
+    ],
     deps = [
         ":config",
         ":flag",

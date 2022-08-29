@@ -55,18 +55,13 @@ ABSL_NAMESPACE_END
 
 #else  // ABSL_USES_STD_STRING_VIEW
 
-#if ABSL_HAVE_BUILTIN(__builtin_memcmp) || \
-    (defined(__GNUC__) && !defined(__clang__))
+#if ABSL_HAVE_BUILTIN(__builtin_memcmp) ||        \
+    (defined(__GNUC__) && !defined(__clang__)) || \
+    (defined(_MSC_VER) && _MSC_VER >= 1928)
 #define ABSL_INTERNAL_STRING_VIEW_MEMCMP __builtin_memcmp
 #else  // ABSL_HAVE_BUILTIN(__builtin_memcmp)
 #define ABSL_INTERNAL_STRING_VIEW_MEMCMP memcmp
 #endif  // ABSL_HAVE_BUILTIN(__builtin_memcmp)
-
-#if defined(__cplusplus) && __cplusplus >= 201402L
-#define ABSL_INTERNAL_STRING_VIEW_CXX14_CONSTEXPR constexpr
-#else
-#define ABSL_INTERNAL_STRING_VIEW_CXX14_CONSTEXPR
-#endif
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
@@ -191,14 +186,16 @@ class string_view {
           ABSL_ATTRIBUTE_LIFETIME_BOUND) noexcept
       // This is implemented in terms of `string_view(p, n)` so `str.size()`
       // doesn't need to be reevaluated after `ptr_` is set.
-      : string_view(str.data(), str.size()) {}
+      // The length check is also skipped since it is unnecessary and causes
+      // code bloat.
+      : string_view(str.data(), str.size(), SkipCheckLengthTag{}) {}
 
   // Implicit constructor of a `string_view` from NUL-terminated `str`. When
   // accepting possibly null strings, use `absl::NullSafeStringView(str)`
   // instead (see below).
+  // The length check is skipped since it is unnecessary and causes code bloat.
   constexpr string_view(const char* str)  // NOLINT(runtime/explicit)
-      : ptr_(str),
-        length_(str ? CheckLengthInternal(StrlenInternal(str)) : 0) {}
+      : ptr_(str), length_(str ? StrlenInternal(str) : 0) {}
 
   // Implicit constructor of a `string_view` from a `const char*` and length.
   constexpr string_view(const char* data, size_type len)
@@ -338,7 +335,7 @@ class string_view {
   //
   // Removes the first `n` characters from the `string_view`. Note that the
   // underlying string is not changed, only the view.
-  ABSL_INTERNAL_STRING_VIEW_CXX14_CONSTEXPR void remove_prefix(size_type n) {
+  constexpr void remove_prefix(size_type n) {
     ABSL_HARDENING_ASSERT(n <= length_);
     ptr_ += n;
     length_ -= n;
@@ -348,7 +345,7 @@ class string_view {
   //
   // Removes the last `n` characters from the `string_view`. Note that the
   // underlying string is not changed, only the view.
-  ABSL_INTERNAL_STRING_VIEW_CXX14_CONSTEXPR void remove_suffix(size_type n) {
+  constexpr void remove_suffix(size_type n) {
     ABSL_HARDENING_ASSERT(n <= length_);
     length_ -= n;
   }
@@ -356,7 +353,7 @@ class string_view {
   // string_view::swap()
   //
   // Swaps this `string_view` with another `string_view`.
-  ABSL_INTERNAL_STRING_VIEW_CXX14_CONSTEXPR void swap(string_view& s) noexcept {
+  constexpr void swap(string_view& s) noexcept {
     auto t = *this;
     *this = s;
     s = t;
@@ -594,6 +591,12 @@ class string_view {
   }
 
  private:
+  // The constructor from std::string delegates to this constructor.
+  // See the comment on that constructor for the rationale.
+  struct SkipCheckLengthTag {};
+  string_view(const char* data, size_type len, SkipCheckLengthTag) noexcept
+      : ptr_(data), length_(len) {}
+
   static constexpr size_type kMaxSize =
       (std::numeric_limits<difference_type>::max)();
 
@@ -669,7 +672,6 @@ std::ostream& operator<<(std::ostream& o, string_view piece);
 ABSL_NAMESPACE_END
 }  // namespace absl
 
-#undef ABSL_INTERNAL_STRING_VIEW_CXX14_CONSTEXPR
 #undef ABSL_INTERNAL_STRING_VIEW_MEMCMP
 
 #endif  // ABSL_USES_STD_STRING_VIEW
