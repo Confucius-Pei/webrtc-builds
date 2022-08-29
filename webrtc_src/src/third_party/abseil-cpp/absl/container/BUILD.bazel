@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -217,12 +218,19 @@ cc_test(
     ],
 )
 
+NOTEST_TAGS_NONMOBILE = [
+    "no_test_darwin_x86_64",
+    "no_test_loonix",
+]
+
 NOTEST_TAGS_MOBILE = [
     "no_test_android_arm",
     "no_test_android_arm64",
     "no_test_android_x86",
     "no_test_ios_x86_64",
 ]
+
+NOTEST_TAGS = NOTEST_TAGS_MOBILE + NOTEST_TAGS_NONMOBILE
 
 cc_library(
     name = "flat_hash_map",
@@ -234,7 +242,6 @@ cc_library(
         ":hash_function_defaults",
         ":raw_hash_map",
         "//absl/algorithm:container",
-        "//absl/base:core_headers",
         "//absl/memory",
     ],
 )
@@ -244,7 +251,7 @@ cc_test(
     srcs = ["flat_hash_map_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":flat_hash_map",
         ":hash_generator_testing",
@@ -278,7 +285,7 @@ cc_test(
     srcs = ["flat_hash_set_test.cc"],
     copts = ABSL_TEST_COPTS + ["-DUNORDERED_SET_CXX17"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":flat_hash_set",
         ":hash_generator_testing",
@@ -301,10 +308,9 @@ cc_library(
     deps = [
         ":container_memory",
         ":hash_function_defaults",
-        ":node_slot_policy",
+        ":node_hash_policy",
         ":raw_hash_map",
         "//absl/algorithm:container",
-        "//absl/base:core_headers",
         "//absl/memory",
     ],
 )
@@ -314,7 +320,7 @@ cc_test(
     srcs = ["node_hash_map_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":hash_generator_testing",
         ":node_hash_map",
@@ -334,10 +340,9 @@ cc_library(
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":hash_function_defaults",
-        ":node_slot_policy",
+        ":node_hash_policy",
         ":raw_hash_set",
         "//absl/algorithm:container",
-        "//absl/base:core_headers",
         "//absl/memory",
     ],
 )
@@ -347,7 +352,7 @@ cc_test(
     srcs = ["node_hash_set_test.cc"],
     copts = ABSL_TEST_COPTS + ["-DUNORDERED_SET_CXX17"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":node_hash_set",
         ":unordered_set_constructor_test",
@@ -376,7 +381,7 @@ cc_test(
     srcs = ["internal/container_memory_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":container_memory",
         ":test_instance_tracker",
@@ -403,7 +408,7 @@ cc_test(
     srcs = ["internal/hash_function_defaults_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = NOTEST_TAGS_MOBILE + ["no_test_loonix"],
+    tags = NOTEST_TAGS,
     deps = [
         ":hash_function_defaults",
         "//absl/hash",
@@ -500,15 +505,15 @@ cc_library(
     ],
     hdrs = ["internal/hashtablez_sampler.h"],
     copts = ABSL_DEFAULT_COPTS,
+    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
+        ":have_sse",
         "//absl/base",
-        "//absl/base:config",
         "//absl/base:core_headers",
+        "//absl/base:exponential_biased",
         "//absl/debugging:stacktrace",
         "//absl/memory",
-        "//absl/profiling:exponential_biased",
-        "//absl/profiling:sample_recorder",
         "//absl/synchronization",
         "//absl/utility",
     ],
@@ -518,14 +523,10 @@ cc_test(
     name = "hashtablez_sampler_test",
     srcs = ["internal/hashtablez_sampler_test.cc"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = [
-        "no_test_wasm",
-    ],
     deps = [
         ":hashtablez_sampler",
-        "//absl/base:config",
+        ":have_sse",
         "//absl/base:core_headers",
-        "//absl/profiling:sample_recorder",
         "//absl/synchronization",
         "//absl/synchronization:thread_pool",
         "//absl/time",
@@ -534,21 +535,21 @@ cc_test(
 )
 
 cc_library(
-    name = "node_slot_policy",
-    hdrs = ["internal/node_slot_policy.h"],
+    name = "node_hash_policy",
+    hdrs = ["internal/node_hash_policy.h"],
     copts = ABSL_DEFAULT_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = ["//absl/base:config"],
 )
 
 cc_test(
-    name = "node_slot_policy_test",
-    srcs = ["internal/node_slot_policy_test.cc"],
+    name = "node_hash_policy_test",
+    srcs = ["internal/node_hash_policy_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         ":hash_policy_traits",
-        ":node_slot_policy",
+        ":node_hash_policy",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -563,6 +564,14 @@ cc_library(
         ":raw_hash_set",
         "//absl/base:throw_delegate",
     ],
+)
+
+cc_library(
+    name = "have_sse",
+    hdrs = ["internal/have_sse.h"],
+    copts = ABSL_DEFAULT_COPTS,
+    linkopts = ABSL_DEFAULT_LINKOPTS,
+    visibility = ["//visibility:private"],
 )
 
 cc_library(
@@ -589,10 +598,11 @@ cc_library(
         ":hash_policy_traits",
         ":hashtable_debug_hooks",
         ":hashtablez_sampler",
+        ":have_sse",
+        ":layout",
         "//absl/base:config",
         "//absl/base:core_headers",
         "//absl/base:endian",
-        "//absl/base:prefetch",
         "//absl/memory",
         "//absl/meta:type_traits",
         "//absl/numeric:bits",
@@ -605,11 +615,7 @@ cc_test(
     srcs = ["internal/raw_hash_set_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkstatic = 1,
-    tags = NOTEST_TAGS_MOBILE + [
-        "no_test_loonix",
-        # TODO(b/237097643): investigate race and remove
-        "noarm_gemu",
-    ],
+    tags = NOTEST_TAGS,
     deps = [
         ":container_memory",
         ":hash_function_defaults",
@@ -619,7 +625,6 @@ cc_test(
         "//absl/base",
         "//absl/base:config",
         "//absl/base:core_headers",
-        "//absl/base:prefetch",
         "//absl/base:raw_logging_internal",
         "//absl/strings",
         "@com_google_googletest//:gtest_main",
@@ -700,7 +705,7 @@ cc_test(
     srcs = ["internal/layout_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = NOTEST_TAGS_MOBILE + ["no_test_loonix"],
+    tags = NOTEST_TAGS,
     visibility = ["//visibility:private"],
     deps = [
         ":layout",
@@ -847,7 +852,7 @@ cc_test(
     srcs = ["internal/unordered_set_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":unordered_set_constructor_test",
         ":unordered_set_lookup_test",
@@ -862,28 +867,12 @@ cc_test(
     srcs = ["internal/unordered_map_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
+    tags = NOTEST_TAGS_NONMOBILE,
     deps = [
         ":unordered_map_constructor_test",
         ":unordered_map_lookup_test",
         ":unordered_map_members_test",
         ":unordered_map_modifiers_test",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "sample_element_size_test",
-    srcs = ["sample_element_size_test.cc"],
-    copts = ABSL_TEST_COPTS,
-    linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = ["no_test_loonix"],
-    visibility = ["//visibility:private"],
-    deps = [
-        ":flat_hash_map",
-        ":flat_hash_set",
-        ":node_hash_map",
-        ":node_hash_set",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -907,7 +896,6 @@ cc_library(
         ":container_memory",
         ":layout",
         "//absl/base:core_headers",
-        "//absl/base:raw_logging_internal",
         "//absl/base:throw_delegate",
         "//absl/memory",
         "//absl/meta:type_traits",
@@ -943,10 +931,6 @@ cc_test(
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
     shard_count = 10,
-    tags = [
-        "no_test_ios",
-        "no_test_wasm",
-    ],
     visibility = ["//visibility:private"],
     deps = [
         ":btree",

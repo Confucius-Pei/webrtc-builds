@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -29,9 +30,6 @@ cc_library(
     name = "memory",
     hdrs = ["memory.h"],
     copts = ABSL_DEFAULT_COPTS,
-    defines = select({
-        "//conditions:default": [],
-    }),
     linkopts = ABSL_DEFAULT_LINKOPTS,
     deps = [
         "//absl/base:core_headers",

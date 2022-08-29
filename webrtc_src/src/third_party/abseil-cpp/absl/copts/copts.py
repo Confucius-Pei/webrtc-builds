@@ -112,9 +112,6 @@ COPT_VARS = {
         "-Wno-implicit-int-conversion",
         "-Wno-shorten-64-to-32",
         "-Wno-sign-conversion",
-        # Disable warnings on unknown warning flags (when warning flags are
-        # unknown on older compiler versions)
-        "-Wno-unknown-warning-option",
         # Don't define min and max macros (Build on Windows using clang)
         "-DNOMINMAX",
     ],

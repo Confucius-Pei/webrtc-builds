@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -34,9 +35,8 @@ cc_library(
     hdrs = [
         "internal/graphcycles.h",
     ],
-    copts = ABSL_DEFAULT_COPTS + select({
-        "//conditions:default": [],
-    }),
+    copts = ABSL_DEFAULT_COPTS,
+    features = ["-no_undefined"],
     linkopts = ABSL_DEFAULT_LINKOPTS,
     visibility = [
         "//absl:__subpackages__",
@@ -88,6 +88,7 @@ cc_library(
         "notification.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
+    features = ["-no_undefined"],
     linkopts = select({
         "//absl:msvc_compiler": [],
         "//absl:clang-cl_compiler": [],
@@ -97,8 +98,8 @@ cc_library(
     deps = [
         ":graphcycles_internal",
         ":kernel_timeout_internal",
-        "//absl/base:atomic_hook",
         "//absl/base",
+        "//absl/base:atomic_hook",
         "//absl/base:base_internal",
         "//absl/base:config",
         "//absl/base:core_headers",
@@ -108,9 +109,7 @@ cc_library(
         "//absl/debugging:stacktrace",
         "//absl/debugging:symbolize",
         "//absl/time",
-    ] + select({
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 cc_test(
@@ -119,9 +118,6 @@ cc_test(
     srcs = ["barrier_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = [
-        "no_test_wasm",
-    ],
     deps = [
         ":synchronization",
         "//absl/time",
@@ -135,9 +131,6 @@ cc_test(
     srcs = ["blocking_counter_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = [
-        "no_test_wasm",
-    ],
     deps = [
         ":synchronization",
         "//absl/time",
@@ -288,9 +281,6 @@ cc_test(
     size = "medium",
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = [
-        "no_test_wasm",
-    ],
     deps = [
         ":per_thread_sem_test_common",
         ":synchronization",
@@ -307,10 +297,7 @@ cc_test(
     ],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
-    tags = [
-        "no_test_ios_x86_64",
-        "no_test_wasm",
-    ],
+    tags = ["no_test_ios_x86_64"],
     deps = [
         ":synchronization",
         "//absl/base:core_headers",

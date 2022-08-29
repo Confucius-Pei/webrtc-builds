@@ -26,7 +26,6 @@
 #include "absl/base/macros.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/strings/internal/cord_internal.h"
-#include "absl/strings/internal/cord_rep_consume.h"
 #include "absl/strings/internal/cord_rep_flat.h"
 
 namespace absl {
@@ -40,7 +39,7 @@ using index_type = CordRepRing::index_type;
 enum class Direction { kForward, kReversed };
 
 inline bool IsFlatOrExternal(CordRep* rep) {
-  return rep->IsFlat() || rep->IsExternal();
+  return rep->tag >= FLAT || rep->tag == EXTERNAL;
 }
 
 // Verifies that n + extra <= kMaxCapacity: throws std::length_error otherwise.
@@ -48,6 +47,14 @@ inline void CheckCapacity(size_t n, size_t extra) {
   if (ABSL_PREDICT_FALSE(extra > CordRepRing::kMaxCapacity - n)) {
     base_internal::ThrowStdLengthError("Maximum capacity exceeded");
   }
+}
+
+// Removes a reference from `rep` only.
+// Asserts that the refcount after decrement is not zero.
+inline bool UnrefNeverOne(CordRep* rep) {
+  bool result = rep->refcount.Decrement();
+  assert(result);
+  return result;
 }
 
 // Creates a flat from the provided string data, allocating up to `extra`
@@ -59,6 +66,40 @@ CordRepFlat* CreateFlat(const char* s, size_t n, size_t extra = 0) {  // NOLINT
   rep->length = n;
   memcpy(rep->Data(), s, n);
   return rep;
+}
+
+// Unrefs the provided `substring`, and returns `substring->child`
+// Adds or assumes a reference on `substring->child`
+CordRep* ClipSubstring(CordRepSubstring* substring) {
+  CordRep* child = substring->child;
+  if (substring->refcount.IsOne()) {
+    delete substring;
+  } else {
+    CordRep::Ref(child);
+    if (ABSL_PREDICT_FALSE(!substring->refcount.Decrement())) {
+      UnrefNeverOne(child);
+      delete substring;
+    }
+  }
+  return child;
+}
+
+// Unrefs the provided `concat`, and returns `{concat->left, concat->right}`
+// Adds or assumes a reference on `concat->left` and `concat->right`.
+std::pair<CordRep*, CordRep*> ClipConcat(CordRepConcat* concat) {
+  auto result = std::make_pair(concat->left, concat->right);
+  if (concat->refcount.IsOne()) {
+    delete concat;
+  } else {
+    CordRep::Ref(result.first);
+    CordRep::Ref(result.second);
+    if (ABSL_PREDICT_FALSE(!concat->refcount.Decrement())) {
+      UnrefNeverOne(result.first);
+      UnrefNeverOne(result.second);
+      delete concat;
+    }
+  }
+  return result;
 }
 
 // Unrefs the entries in `[head, tail)`.
@@ -74,6 +115,79 @@ void UnrefEntries(const CordRepRing* rep, index_type head, index_type tail) {
       }
     }
   });
+}
+
+template <typename F>
+void Consume(Direction direction, CordRep* rep, F&& fn) {
+  size_t offset = 0;
+  size_t length = rep->length;
+  struct Entry {
+    CordRep* rep;
+    size_t offset;
+    size_t length;
+  };
+  absl::InlinedVector<Entry, 40> stack;
+
+  for (;;) {
+    if (rep->tag >= FLAT || rep->tag == EXTERNAL || rep->tag == RING) {
+      fn(rep, offset, length);
+      if (stack.empty()) return;
+
+      rep = stack.back().rep;
+      offset = stack.back().offset;
+      length = stack.back().length;
+      stack.pop_back();
+    } else if (rep->tag == SUBSTRING) {
+      offset += rep->substring()->start;
+      rep = ClipSubstring(rep->substring());
+    } else if (rep->tag == CONCAT) {
+      auto res = ClipConcat(rep->concat());
+      CordRep* left = res.first;
+      CordRep* right = res.second;
+
+      if (left->length <= offset) {
+        // Don't need left node
+        offset -= left->length;
+        CordRep::Unref(left);
+        rep = right;
+        continue;
+      }
+
+      size_t length_left = left->length - offset;
+      if (length_left >= length) {
+        // Don't need right node
+        CordRep::Unref(right);
+        rep = left;
+        continue;
+      }
+
+      // Need both nodes
+      size_t length_right = length - length_left;
+      if (direction == Direction::kReversed) {
+        stack.push_back({left, offset, length_left});
+        rep = right;
+        offset = 0;
+        length = length_right;
+      } else {
+        stack.push_back({right, 0, length_right});
+        rep = left;
+        length = length_left;
+      }
+    } else {
+      assert("Valid tag" == nullptr);
+      return;
+    }
+  }
+}
+
+template <typename F>
+void Consume(CordRep* rep, F&& fn) {
+  return Consume(Direction::kForward, rep, std::forward<F>(fn));
+}
+
+template <typename F>
+void RConsume(CordRep* rep, F&& fn) {
+  return Consume(Direction::kReversed, rep, std::forward<F>(fn));
 }
 
 }  // namespace
@@ -129,9 +243,7 @@ class CordRepRing::Filler {
   index_type pos_;
 };
 
-#ifdef ABSL_INTERNAL_NEED_REDUNDANT_CONSTEXPR_DECL
-constexpr size_t CordRepRing::kMaxCapacity;
-#endif
+constexpr size_t CordRepRing::kMaxCapacity; // NOLINT: needed for c++11
 
 bool CordRepRing::IsValid(std::ostream& output) const {
   if (capacity_ == 0) {
@@ -231,7 +343,7 @@ void CordRepRing::SetCapacityForTesting(size_t capacity) {
 }
 
 void CordRepRing::Delete(CordRepRing* rep) {
-  assert(rep != nullptr && rep->IsRing());
+  assert(rep != nullptr && rep->tag == RING);
 #if defined(__cpp_sized_deallocation)
   size_t size = AllocSize(rep->capacity_);
   rep->~CordRepRing();
@@ -362,7 +474,7 @@ CordRepRing* CordRepRing::Create(CordRep* child, size_t extra) {
   if (IsFlatOrExternal(child)) {
     return CreateFromLeaf(child, 0, length, extra);
   }
-  if (child->IsRing()) {
+  if (child->tag == RING) {
     return Mutable(child->ring(), extra);
   }
   return CreateSlow(child, extra);
@@ -435,7 +547,7 @@ CordRepRing* CordRepRing::AddRing(CordRepRing* rep, CordRepRing* ring,
 
 CordRepRing* CordRepRing::AppendSlow(CordRepRing* rep, CordRep* child) {
   Consume(child, [&rep](CordRep* child_arg, size_t offset, size_t len) {
-    if (child_arg->IsRing()) {
+    if (child_arg->tag == RING) {
       rep = AddRing<AddMode::kAppend>(rep, child_arg->ring(), offset, len);
     } else {
       rep = AppendLeaf(rep, child_arg, offset, len);
@@ -462,14 +574,14 @@ CordRepRing* CordRepRing::Append(CordRepRing* rep, CordRep* child) {
   if (IsFlatOrExternal(child)) {
     return AppendLeaf(rep, child, 0, length);
   }
-  if (child->IsRing()) {
+  if (child->tag == RING) {
     return AddRing<AddMode::kAppend>(rep, child->ring(), 0, length);
   }
   return AppendSlow(rep, child);
 }
 
 CordRepRing* CordRepRing::PrependSlow(CordRepRing* rep, CordRep* child) {
-  ReverseConsume(child, [&](CordRep* child_arg, size_t offset, size_t len) {
+  RConsume(child, [&](CordRep* child_arg, size_t offset, size_t len) {
     if (IsFlatOrExternal(child_arg)) {
       rep = PrependLeaf(rep, child_arg, offset, len);
     } else {
@@ -498,7 +610,7 @@ CordRepRing* CordRepRing::Prepend(CordRepRing* rep, CordRep* child) {
   if (IsFlatOrExternal(child)) {
     return PrependLeaf(rep, child, 0, length);
   }
-  if (child->IsRing()) {
+  if (child->tag == RING) {
     return AddRing<AddMode::kPrepend>(rep, child->ring(), 0, length);
   }
   return PrependSlow(rep, child);

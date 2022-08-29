@@ -336,7 +336,6 @@ struct MovableNonCopyable {
 
 struct NonCopyableOrMovable {
   NonCopyableOrMovable() = default;
-  virtual ~NonCopyableOrMovable() = default;
   NonCopyableOrMovable(const NonCopyableOrMovable&) = delete;
   NonCopyableOrMovable(NonCopyableOrMovable&&) = delete;
   NonCopyableOrMovable& operator=(const NonCopyableOrMovable&) = delete;

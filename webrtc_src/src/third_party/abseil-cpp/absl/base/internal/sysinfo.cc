@@ -117,21 +117,20 @@ int Win32NumCPUs() {
     }
   }
   free(info);
-  return static_cast<int>(logicalProcessorCount);
+  return logicalProcessorCount;
 }
 
 #endif
 
 }  // namespace
 
+
 static int GetNumCPUs() {
 #if defined(__myriad2__)
   return 1;
 #elif defined(_WIN32)
-  const int hardware_concurrency = Win32NumCPUs();
+  const unsigned hardware_concurrency = Win32NumCPUs();
   return hardware_concurrency ? hardware_concurrency : 1;
-#elif defined(_AIX)
-  return sysconf(_SC_NPROCESSORS_ONLN);
 #else
   // Other possibilities:
   //  - Read /sys/devices/system/cpu/online and use cpumask_parse()

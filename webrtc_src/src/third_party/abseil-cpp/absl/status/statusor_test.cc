@@ -17,7 +17,6 @@
 #include <array>
 #include <initializer_list>
 #include <memory>
-#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -26,7 +25,6 @@
 #include "absl/base/casts.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/any.h"
 #include "absl/utility/utility.h"
 
@@ -36,7 +34,6 @@ using ::testing::AllOf;
 using ::testing::AnyWith;
 using ::testing::ElementsAre;
 using ::testing::Field;
-using ::testing::HasSubstr;
 using ::testing::Ne;
 using ::testing::Not;
 using ::testing::Pointee;
@@ -260,9 +257,9 @@ TEST(StatusOr, TestMoveOnlyInitializationFromTemporaryByValueOrDie) {
 
 TEST(StatusOr, TestValueOrDieOverloadForConstTemporary) {
   static_assert(
-      std::is_same<
-          const int&&,
-          decltype(std::declval<const absl::StatusOr<int>&&>().value())>(),
+      std::is_same<const int&&,
+                   decltype(
+                       std::declval<const absl::StatusOr<int>&&>().value())>(),
       "value() for const temporaries should return const T&&");
 }
 
@@ -306,57 +303,20 @@ TEST(StatusOr, StatusCtorForwards) {
   EXPECT_NE(status.message(), "Some error");
 }
 
-TEST(BadStatusOrAccessTest, CopyConstructionWhatOk) {
-  absl::Status error =
-      absl::InternalError("some arbitrary message too big for the sso buffer");
-  absl::BadStatusOrAccess e1{error};
-  absl::BadStatusOrAccess e2{e1};
-  EXPECT_THAT(e1.what(), HasSubstr(error.ToString()));
-  EXPECT_THAT(e2.what(), HasSubstr(error.ToString()));
-}
-
-TEST(BadStatusOrAccessTest, CopyAssignmentWhatOk) {
-  absl::Status error =
-      absl::InternalError("some arbitrary message too big for the sso buffer");
-  absl::BadStatusOrAccess e1{error};
-  absl::BadStatusOrAccess e2{absl::InternalError("other")};
-  e2 = e1;
-  EXPECT_THAT(e1.what(), HasSubstr(error.ToString()));
-  EXPECT_THAT(e2.what(), HasSubstr(error.ToString()));
-}
-
-TEST(BadStatusOrAccessTest, MoveConstructionWhatOk) {
-  absl::Status error =
-      absl::InternalError("some arbitrary message too big for the sso buffer");
-  absl::BadStatusOrAccess e1{error};
-  absl::BadStatusOrAccess e2{std::move(e1)};
-  EXPECT_THAT(e2.what(), HasSubstr(error.ToString()));
-}
-
-TEST(BadStatusOrAccessTest, MoveAssignmentWhatOk) {
-  absl::Status error =
-      absl::InternalError("some arbitrary message too big for the sso buffer");
-  absl::BadStatusOrAccess e1{error};
-  absl::BadStatusOrAccess e2{absl::InternalError("other")};
-  e2 = std::move(e1);
-  EXPECT_THAT(e2.what(), HasSubstr(error.ToString()));
-}
-
 // Define `EXPECT_DEATH_OR_THROW` to test the behavior of `StatusOr::value`,
 // which either throws `BadStatusOrAccess` or `LOG(FATAL)` based on whether
 // exceptions are enabled.
 #ifdef ABSL_HAVE_EXCEPTIONS
-#define EXPECT_DEATH_OR_THROW(statement, status_)                  \
-  EXPECT_THROW(                                                    \
-      {                                                            \
-        try {                                                      \
-          statement;                                               \
-        } catch (const absl::BadStatusOrAccess& e) {               \
-          EXPECT_EQ(e.status(), status_);                          \
-          EXPECT_THAT(e.what(), HasSubstr(e.status().ToString())); \
-          throw;                                                   \
-        }                                                          \
-      },                                                           \
+#define EXPECT_DEATH_OR_THROW(statement, status_)    \
+  EXPECT_THROW(                                      \
+      {                                              \
+        try {                                        \
+          statement;                                 \
+        } catch (const absl::BadStatusOrAccess& e) { \
+          EXPECT_EQ(e.status(), status_);            \
+          throw;                                     \
+        }                                            \
+      },                                             \
       absl::BadStatusOrAccess);
 #else  // ABSL_HAVE_EXCEPTIONS
 #define EXPECT_DEATH_OR_THROW(statement, status) \
@@ -451,6 +411,8 @@ TEST(StatusOr, TestStatusCtor) {
   EXPECT_FALSE(thing.ok());
   EXPECT_EQ(thing.status().code(), absl::StatusCode::kCancelled);
 }
+
+
 
 TEST(StatusOr, TestValueCtor) {
   const int kI = 4;
@@ -1337,6 +1299,8 @@ TEST(StatusOr, TestPointerDefaultCtor) {
   EXPECT_FALSE(thing.ok());
   EXPECT_EQ(thing.status().code(), absl::StatusCode::kUnknown);
 }
+
+
 
 TEST(StatusOr, TestPointerStatusCtor) {
   absl::StatusOr<int*> thing(absl::CancelledError());

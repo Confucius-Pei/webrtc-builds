@@ -95,7 +95,6 @@ ABSL_LLVM_FLAGS = [
     "-Wno-implicit-int-conversion",
     "-Wno-shorten-64-to-32",
     "-Wno-sign-conversion",
-    "-Wno-unknown-warning-option",
     "-DNOMINMAX",
 ]
 
