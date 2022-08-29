@@ -240,7 +240,8 @@ function compile() {
   # This will cause errors like: undefined reference to `non-virtual thunk to
   # cricket::VideoCapturer::AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>*,
   # rtc::VideoSinkWants const&)'
-  [ $ENABLE_ITERATOR_DEBUGGING = 0 ] && common_args+=" enable_iterator_debugging=false"
+  #[ $ENABLE_ITERATOR_DEBUGGING = 0 ] && common_args+=" enable_iterator_debugging=false"
+  common_args+=" enable_iterator_debugging=false"
 
   # Use clang or gcc to compile WebRTC.
   # The default compiler used by Chromium/WebRTC is clang, so there are frequent
@@ -298,7 +299,8 @@ function package::prepare() {
       local header_source_dir=.
 
       # Copy header files, skip third_party dir
-      find $header_source_dir -path './third_party' -prune -o -type f \( -name '*.h' \) -print | \
+      #find $header_source_dir -path './third_party' -prune -o -type f \( -name '*.h' \) -print | \
+      find $header_source_dir -type f \( -name '*.h' \) -print | \
         xargs -I '{}' $CP --parents '{}' $outdir/$package_filename/include
         
       # Find and copy dependencies
