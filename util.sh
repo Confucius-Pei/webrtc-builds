@@ -259,10 +259,8 @@ function compile() {
       [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
       compile::ninja "$outdir/$target_cpu/$cfg" "$common_args $target_args"
 
-      if [ $COMBINE_LIBRARIES = 1 ]; then
-        # Method 1: Merge the static .a/.lib libraries.
-        combine::static $platform "$outdir/$target_cpu/$cfg" libwebrtc
-      fi 
+      # Method 1: Merge the static .a/.lib libraries.
+      combine::static $platform "$outdir/$target_cpu/$cfg" libwebrtc
     done
   popd >/dev/null
 }
@@ -318,15 +316,9 @@ function package::prepare() {
       mkdir -p $outdir/$TARGET_CPU/$cfg
       pushd $outdir/$TARGET_CPU/$cfg >/dev/null
         mkdir -p $outdir/$package_filename/lib/$TARGET_CPU/$cfg
-        if [ $COMBINE_LIBRARIES = 1 ]; then
-          find . -name '*.so' -o -name '*.dll' -o -name '*.lib' -o -name '*.a' -o -name '*.jar' | \
-            grep -E 'libwebrtc' | \
-            xargs -I '{}' $CP '{}' $outdir/$package_filename/lib/$TARGET_CPU/$cfg
-        else
-          find . -name '*.so' -o -name '*.dll' -o -name '*.lib' -o -name '*.a' -o -name '*.jar' | \
-            grep -E 'webrtc\.|boringssl|protobuf|system_wrappers' | \
-            xargs -I '{}' $CP '{}' $outdir/$package_filename/lib/$TARGET_CPU/$cfg
-        fi
+        find . -name '*.so' -o -name '*.dll' -o -name '*.lib' -o -name '*.a' -o -name '*.jar' | \
+          grep -E 'libwebrtc' | \
+          xargs -I '{}' $CP '{}' $outdir/$package_filename/lib/$TARGET_CPU/$cfg
       popd >/dev/null
     done
 
