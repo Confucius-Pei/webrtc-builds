@@ -33,8 +33,6 @@ while getopts :c:n:d OPTION; do
   esac
 done
 
-OUTDIR=${OUTDIR:-out}
-SRCDIR=${SRCDIR:-webrtc_src}
 ENABLE_RTTI=${ENABLE_RTTI:-1}
 DEBUG=${DEBUG:-0}
 CONFIGS=${CONFIGS:-Debug Release}
@@ -45,8 +43,11 @@ PATH=$DEPOT_TOOLS_DIR:$DEPOT_TOOLS_DIR/python276_bin:$PATH
 
 [ "$DEBUG" = 1 ] && set -x
 
+OUTDIR=out
 mkdir -p $OUTDIR
 OUTDIR=$(cd $OUTDIR && pwd -P)
+
+SRCDIR=webrtc_src
 mkdir -p $SRCDIR
 SRCDIR=$(cd $SRCDIR && pwd -P)
 
@@ -62,9 +63,7 @@ check::build::env
 echo Compiling WebRTC
 compile $OUTDIR "$TARGET_CPU" "$CONFIGS" $SRCDIR
 
-PACKAGE_FILENAME=$(interpret-pattern "$PACKAGE_FILENAME_PATTERN" "$TARGET_CPU")
-
-echo "Packaging WebRTC: $PACKAGE_FILENAME"
-package::prepare $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $SRCDIR
+echo "Packaging WebRTC"
+package::prepare $OUTDIR webrtc $DIR/resource "$CONFIGS" $SRCDIR
 
 echo Build successful
