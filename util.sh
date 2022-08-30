@@ -1,18 +1,3 @@
-# Detect the host platform.
-# Set PLATFORM environment variable to override default behavior.
-# Supported platform types - 'linux', 'win', 'mac'
-# 'msys' is the git bash shell, built using mingw-w64, running under Microsoft
-# Windows.
-function detect-platform() {
-  # set PLATFORM to android on linux host to build android
-  case "$OSTYPE" in
-  darwin*)      PLATFORM=${PLATFORM:-mac} ;;
-  linux*)       PLATFORM=${PLATFORM:-linux} ;;
-  win32*|msys*) PLATFORM=${PLATFORM:-win} ;;
-  *)            echo "Building on unsupported OS: $OSTYPE"; exit 1; ;;
-  esac
-}
-
 # Cleanup the output directory.
 #
 # $1: The output directory.
@@ -83,30 +68,6 @@ function init-msenv() {
 #
 # $1: The platform type.
 function check::build::env() {
-  local platform="$1"
-  local target_cpu="$2"
-
-  case $platform in
-  mac)
-    # for GNU version of cp: gcp
-    which gcp || brew install coreutils
-    ;;
-  linux)
-    if ! grep -v \# /etc/apt/sources.list | grep -q multiverse ; then
-      echo "*** Warning: The Multiverse repository is probably not enabled ***"
-      echo "*** which is required for things like msttcorefonts.           ***"
-    fi
-    if ! which sudo > /dev/null ; then
-      apt-get update -qq
-      apt-get install -y sudo
-    fi
-    ensure-package curl
-    ensure-package git
-    ensure-package python
-    ensure-package lbzip2
-    ensure-package lsb-release lsb_release
-    ;;
-  win)
     init-msenv
 
     # Required programs that may be missing on Windows
@@ -133,9 +94,6 @@ function check::build::env() {
         echo "Error: '$f' is not installed." >&2
         exit 1
       fi
-    done
-    ;;
-  esac
 }
 
 # Compile using ninja.
@@ -215,24 +173,21 @@ function combine::static() {
 function compile() {
   local platform="$1"
   local outdir="$2"
-  local target_os="$3"
-  local target_cpu="$4"
-  local configs="$5"
-  local blacklist="$6"
-  local srcdir="$7"
+  local target_cpu="$3"
+  local configs="$4"
+  local srcdir="$5"
 
   # Set default default common  and target args.
   # `rtc_include_tests=false`: Disable all unit tests
   # `treat_warnings_as_errors=false`: Don't error out on compiler warnings
   local common_args="rtc_include_tests=false treat_warnings_as_errors=false"
-  local target_args="target_os=\"$target_os\" target_cpu=\"$target_cpu\""
+  local target_args="target_os=win target_cpu=\"$target_cpu\""
 
   # Build WebRTC with RTII enbled.
   [ $ENABLE_RTTI = 1 ] && common_args+=" use_rtti=true"
 
   # Static vs Dynamic CRT: When `is_component_build` is false static CTR will be
   # enforced.By default Debug builds are dynamic and Release builds are static.
-  #[ $ENABLE_STATIC_LIBS = 1 ] && common_args+=" is_component_build=false"
   common_args+=" is_component_build=false"
 
   # `enable_iterator_debugging=false`: Disable libstdc++ debugging facilities
@@ -240,7 +195,6 @@ function compile() {
   # This will cause errors like: undefined reference to `non-virtual thunk to
   # cricket::VideoCapturer::AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>*,
   # rtc::VideoSinkWants const&)'
-  #[ $ENABLE_ITERATOR_DEBUGGING = 0 ] && common_args+=" enable_iterator_debugging=false"
   common_args+=" enable_iterator_debugging=false"
 
   # Use clang or gcc to compile WebRTC.
@@ -249,10 +203,8 @@ function compile() {
   # Use gcc at your own risk, but it may be necessary if your compiler doesn't
   # like the clang compiled libraries, so the option is there.
   # Set `is_clang=false` and `use_sysroot=false` to build using gcc.
-  if [ $ENABLE_CLANG = 0 ]; then
-    common_args+=" is_clang=false"
-    [ $platform = 'linux' ] && common_args+=" use_sysroot=false linux_use_bundled_binutils=false use_custom_libcxx=false use_custom_libcxx_for_host=false"
-  fi
+  common_args+=" is_clang=false"
+  [ $platform = 'linux' ] && common_args+=" use_sysroot=false linux_use_bundled_binutils=false use_custom_libcxx=false use_custom_libcxx_for_host=false"
 
   pushd $srcdir/src >/dev/null
     for cfg in $configs; do
