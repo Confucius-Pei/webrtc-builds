@@ -65,13 +65,10 @@ function init-msenv() {
 
 # Make sure all build dependencies are present and platform specific
 # environment variables are set.
-#
-# $1: The platform type.
 function check::build::env() {
     init-msenv
 
     # Required programs that may be missing on Windows
-    # TODO: check before running platform specific commands
     REQUIRED_PROGS=(
       bash
       sed
@@ -125,57 +122,32 @@ function compile::ninja() {
 # The Microsoft Windows tools have different names than the other tools:
 # 'lib' as the librarian, instead of 'ar'.
 #
-# $1: The platform
-# $2: The list of object file paths to be combined
-# $3: The output library name
+# $1: The list of object file paths to be combined
+# $2: The output library name
 function combine::static() {
-  local platform="$1"
-  local outputdir="$2"
-  local libname="$3"
+  local outputdir="$1"
+  local libname="$2"
 
   echo $libname
   pushd $outputdir >/dev/null
     rm -f $libname.*
 
     # Find only the libraries we need
-    if [ $platform = 'win' ]; then
-      local whitelist="boringssl.dll.lib|protobuf_lite.dll.lib|webrtc\.lib|field_trial_default.lib|metrics_default.lib"
-    else
-      local whitelist="boringssl\.a|protobuf_full\.a|webrtc\.a|field_trial_default\.a|metrics_default\.a"
-    fi
+    local whitelist="boringssl.dll.lib|protobuf_lite.dll.lib|webrtc\.lib|field_trial_default.lib|metrics_default.lib"
     cat .ninja_log | tr '\t' '\n' | grep -E $whitelist | sort -u >$libname.list
 
     # Combine all objects into one static library
-    case $platform in
-    win)
-      lib.exe /OUT:$libname.lib @$libname.list
-      ;;
-    *)
-      # Combine *.a static libraries
-      echo "CREATE $libname.a" >$libname.ar
-      while read a; do
-        echo "ADDLIB $a" >>$libname.ar
-      done <$libname.list
-      echo "SAVE" >>$libname.ar
-      echo "END" >>$libname.ar
-      ar -M < $libname.ar
-      ranlib $libname.a
-      ;;
-    esac
+    lib.exe /OUT:$libname.lib @$libname.list
   popd >/dev/null
 }
 
 # Compile the libraries.
 #
-# $1: The platform type.
-# $2: The output directory.
-# $6: The src directory.
 function compile() {
-  local platform="$1"
-  local outdir="$2"
-  local target_cpu="$3"
-  local configs="$4"
-  local srcdir="$5"
+  local outdir="$1"
+  local target_cpu="$2"
+  local configs="$3"
+  local srcdir="$4"
 
   # Set default default common  and target args.
   # `rtc_include_tests=false`: Disable all unit tests
@@ -204,22 +176,20 @@ function compile() {
   # like the clang compiled libraries, so the option is there.
   # Set `is_clang=false` and `use_sysroot=false` to build using gcc.
   common_args+=" is_clang=false"
-  [ $platform = 'linux' ] && common_args+=" use_sysroot=false linux_use_bundled_binutils=false use_custom_libcxx=false use_custom_libcxx_for_host=false"
-
+ 
   pushd $srcdir/src >/dev/null
     for cfg in $configs; do
       [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
       compile::ninja "$outdir/$target_cpu/$cfg" "$common_args $target_args"
 
       # Method 1: Merge the static .a/.lib libraries.
-      combine::static $platform "$outdir/$target_cpu/$cfg" libwebrtc
+      combine::static "$outdir/$target_cpu/$cfg" libwebrtc
     done
   popd >/dev/null
 }
 
 # Package a compiled build into an archive file in the output directory.
 #
-# $1: The platform type.
 # $2: The output directory.
 # $3: The package filename.
 # $4: The project's resource dirctory.
@@ -227,18 +197,13 @@ function compile() {
 # $6: The revision number.
 # $7: The src directory.
 function package::prepare() {
-  local platform="$1"
-  local outdir="$2"
-  local package_filename="$3"
-  local resource_dir="$4"
-  local configs="$5"
-  local srcdir="$6"
+  local outdir="$1"
+  local package_filename="$2"
+  local resource_dir="$3"
+  local configs="$4"
+  local srcdir="$5"
   
-  if [ $platform = 'mac' ]; then
-    CP='gcp'
-  else
-    CP='cp'
-  fi
+  CP='cp'
 
    # Create directory structure
   mkdir -p $outdir/$package_filename/include
@@ -274,25 +239,14 @@ function package::prepare() {
       popd >/dev/null
     done
 
-    # Create pkgconfig files on linux
-    if [ $platform = 'linux' ]; then
-      for cfg in $configs; do
-        mkdir -p $outdir/$package_filename/lib/$TARGET_CPU/$cfg/pkgconfig
-        CONFIG=$cfg envsubst '$CONFIG' < $resource_dir/pkgconfig/libwebrtc_full.pc.in > \
-          $package_filename/lib/$TARGET_CPU/$cfg/pkgconfig/libwebrtc_full.pc
-      done
-    fi
-
   popd >/dev/null
 }
 
 # This interprets a pattern and returns the interpreted one.
 function interpret-pattern() {
   local pattern="$1"
-  local platform="$2"
-  local target_cpu="$3"
+  local target_cpu="$2"
 
-  pattern=${pattern//%p%/$platform}
   pattern=${pattern//%tc%/$target_cpu}
 
   echo "$pattern"

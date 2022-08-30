@@ -60,11 +60,11 @@ echo Checking build environment dependencies
 check::build::env
 
 echo Compiling WebRTC
-compile $PLATFORM $OUTDIR "$TARGET_CPU" "$CONFIGS" $SRCDIR
+compile $OUTDIR "$TARGET_CPU" "$CONFIGS" $SRCDIR
 
-PACKAGE_FILENAME=$(interpret-pattern "$PACKAGE_FILENAME_PATTERN" "$PLATFORM" "$TARGET_CPU")
+PACKAGE_FILENAME=$(interpret-pattern "$PACKAGE_FILENAME_PATTERN" "$TARGET_CPU")
 
 echo "Packaging WebRTC: $PACKAGE_FILENAME"
-package::prepare $PLATFORM $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $SRCDIR
+package::prepare $OUTDIR $PACKAGE_FILENAME $DIR/resource "$CONFIGS" $SRCDIR
 
 echo Build successful
