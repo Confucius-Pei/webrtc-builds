@@ -160,7 +160,7 @@ function compile() {
   local target_args="target_os=\"win\" target_cpu=\"$target_cpu\""
 
   # Build WebRTC with RTII enbled.
-  [ $ENABLE_RTTI = 1 ] && common_args+=" use_rtti=true"
+  common_args+=" use_rtti=true"
 
   # Static vs Dynamic CRT: When `is_component_build` is false static CTR will be
   # enforced.By default Debug builds are dynamic and Release builds are static.

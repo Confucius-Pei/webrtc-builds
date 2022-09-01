@@ -24,24 +24,21 @@ OPTIONS:
 EOF
 }
 
-while getopts :c:n:d OPTION; do
+while getopts :c:n OPTION; do
   case $OPTION in
   c) TARGET_CPU=$OPTARG ;;
   n) CONFIGS=$OPTARG ;;
-  d) DEBUG=1 ;;
   ?) usage; exit 1 ;;
   esac
 done
 
-ENABLE_RTTI=${ENABLE_RTTI:-1}
 DEBUG=${DEBUG:-0}
 CONFIGS=${CONFIGS:-Debug Release}
-PACKAGE_FILENAME_PATTERN=${PACKAGE_FILENAME_PATTERN:-"webrtc-%tc%"}
 DEPOT_TOOLS_DIR=$DIR/depot_tools
 TOOLS_DIR=$DIR/tools
 PATH=$DEPOT_TOOLS_DIR:$DEPOT_TOOLS_DIR/python276_bin:$PATH
 
-[ "$DEBUG" = 1 ] && set -x
+set -x
 
 OUTDIR=out
 mkdir -p $OUTDIR
@@ -53,8 +50,6 @@ SRCDIR=$(cd $SRCDIR && pwd -P)
 
 TARGET_CPU=${TARGET_CPU:-x64}
 
-echo "SRCDIR: $SRCDIR"
-echo "OUTDIR: $OUTDIR"
 echo "Target CPU: $TARGET_CPU"
 
 echo Checking build environment dependencies
