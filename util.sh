@@ -115,16 +115,17 @@ function combine::static() {
 function compile() {
   local target_cpu="$1"
   local configs="$2"
+  local outputdir="$3"
 
-  local common_args="rtc_include_tests=true treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false"
+  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false"
   local target_args="target_os=\"win\" target_cpu=\"$target_cpu\""
 
   pushd webrtc_src/src >/dev/null
   for cfg in $configs; do
     [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
-    compile::ninja "out/$target_cpu/$cfg" "$common_args $target_args"
+    compile::ninja "$outputdir/$target_cpu/$cfg" "$common_args $target_args"
 
-    combine::static "out/$target_cpu/$cfg" libwebrtc
+    combine::static "$outputdir/$target_cpu/$cfg" libwebrtc
   done
   popd >/dev/null
 }

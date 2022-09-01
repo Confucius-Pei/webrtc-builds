@@ -56,7 +56,7 @@ echo Checking build environment dependencies
 check::build::env
 
 echo Compiling WebRTC
-compile "$TARGET_CPU" "$CONFIGS"
+compile "$TARGET_CPU" "$CONFIGS" $OUTDIR 
 
 echo "Packaging WebRTC"
 package::prepare $OUTDIR webrtc "$CONFIGS" $SRCDIR
