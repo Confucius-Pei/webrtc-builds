@@ -1,24 +1,3 @@
-# Cleanup the output directory.
-#
-# $1: The output directory.
-function clean() {
-  local outdir="$1"
-  rm -rf $outdir/* $outdir/.gclient*
-}
-
-# Make sure a package is installed. Depends on sudo to be installed first.
-#
-# $1: The name of the package
-# $2: Existence check binary. Defaults to name of the package.
-function ensure-package() {
-  local name="$1"
-  local binary="${2:-$1}"
-  if ! which $binary >/dev/null; then
-    sudo apt-get update -qq
-    sudo apt-get install -y $name
-  fi
-}
-
 # Check if any of the arguments is executable (logical OR condition).
 # Using plain "type" without any option because has-binary is intended
 # to know if there is a program that one can call regardless if it is
@@ -114,20 +93,6 @@ function compile::ninja() {
 }
 
 # Combine built static libraries into one library.
-#
-# NOTE: This method is currently preferred since combining .o objects is
-# causing undefined references to libvpx intrinsics on both Linux and Windows.
-#
-# The Microsoft Windows tools use different file extensions than the other tools:
-# '.obj' as the object file extension, instead of '.o'
-# '.lib' as the static library file extension, instead of '.a'
-# '.dll' as the shared library file extension, instead of '.so'
-#
-# The Microsoft Windows tools have different names than the other tools:
-# 'lib' as the librarian, instead of 'ar'.
-#
-# $1: The list of object file paths to be combined
-# $2: The output library name
 function combine::static() {
   local outputdir="$1"
   local libname="$2"
@@ -148,71 +113,33 @@ function combine::static() {
 # Compile the libraries.
 #
 function compile() {
-  local outdir="$1"
-  local target_cpu="$2"
-  local configs="$3"
-  local srcdir="$4"
+  local target_cpu="$1"
+  local configs="$2"
 
-  # Set default default common  and target args.
-  # `rtc_include_tests=false`: Disable all unit tests
-  # `treat_warnings_as_errors=false`: Don't error out on compiler warnings
-  local common_args="rtc_include_tests=false treat_warnings_as_errors=false"
+  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false"
   local target_args="target_os=\"win\" target_cpu=\"$target_cpu\""
 
-  # Build WebRTC with RTII enbled.
-  common_args+=" use_rtti=true"
-
-  # Static vs Dynamic CRT: When `is_component_build` is false static CTR will be
-  # enforced.By default Debug builds are dynamic and Release builds are static.
-  common_args+=" is_component_build=false"
-
-  # `enable_iterator_debugging=false`: Disable libstdc++ debugging facilities
-  # unless all your compiled applications and dependencies define _GLIBCXX_DEBUG=1.
-  # This will cause errors like: undefined reference to `non-virtual thunk to
-  # cricket::VideoCapturer::AddOrUpdateSink(rtc::VideoSinkInterface<webrtc::VideoFrame>*,
-  # rtc::VideoSinkWants const&)'
-  common_args+=" enable_iterator_debugging=false"
-
-  # Use clang or gcc to compile WebRTC.
-  # The default compiler used by Chromium/WebRTC is clang, so there are frequent
-  # bugs and incompatabilities with gcc, especially with newer versions >= 4.8.
-  # Use gcc at your own risk, but it may be necessary if your compiler doesn't
-  # like the clang compiled libraries, so the option is there.
-  # Set `is_clang=false` and `use_sysroot=false` to build using gcc.
-  common_args+=" is_clang=false"
-
-  pushd $srcdir/src >/dev/null
+  pushd webrtc_src/src >/dev/null
   for cfg in $configs; do
     [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
-    compile::ninja "$outdir/$target_cpu/$cfg" "$common_args $target_args"
+    compile::ninja "out/$target_cpu/$cfg" "$common_args $target_args"
 
-    # Method 1: Merge the static .a/.lib libraries.
-    combine::static "$outdir/$target_cpu/$cfg" libwebrtc
+    combine::static "out/$target_cpu/$cfg" libwebrtc
   done
   popd >/dev/null
 }
 
 # Package a compiled build into an archive file in the output directory.
-#
-# $2: The output directory.
-# $3: The package filename.
-# $4: The project's resource dirctory.
-# $5: The build configurations.
-# $6: The revision number.
-# $7: The src directory.
 function package::prepare() {
   local outdir="$1"
-  local package_filename="$2"
-  local resource_dir="$3"
-  local configs="$4"
-  local srcdir="$5"
+  local configs="$2"
 
   CP='cp'
 
   # Create directory structure
-  mkdir -p $outdir/$package_filename/include
+  mkdir -p $outdir/webrtc/include
 
-  pushd $srcdir >/dev/null
+  pushd webrtc_src >/dev/null
   pushd src >/dev/null
 
   local header_source_dir=.
@@ -220,7 +147,7 @@ function package::prepare() {
   # Copy header files, skip third_party dir
   #find $header_source_dir -path './third_party' -prune -o -type f \( -name '*.h' \) -print | \
   find $header_source_dir -type f \( -name '*.h' \) -print | \
-  xargs -I '{}' $CP --parents '{}' $outdir/$package_filename/include
+  xargs -I '{}' $CP --parents '{}' $outdir/webrtc/include
 
   # Find and copy dependencies
   # The following build dependencies were excluded:
@@ -228,7 +155,7 @@ function package::prepare() {
   find $header_source_dir -name '*.h' -o -name README -o -name LICENSE -o -name COPYING | \
   grep './third_party' | \
   grep -E 'boringssl|expat/files|jsoncpp/source/json|libjpeg|libjpeg_turbo|libsrtp|libyuv|libvpx|opus|protobuf|usrsctp/usrsctpout/usrsctpout' | \
-  xargs -I '{}' $CP --parents '{}' $outdir/$package_filename/include
+  xargs -I '{}' $CP --parents '{}' $outdir/webrtc/include
 
   popd >/dev/null
 
@@ -236,22 +163,12 @@ function package::prepare() {
   for cfg in $configs; do
     mkdir -p $outdir/$TARGET_CPU/$cfg
     pushd $outdir/$TARGET_CPU/$cfg >/dev/null
-    mkdir -p $outdir/$package_filename/lib/$TARGET_CPU/$cfg
+    mkdir -p $outdir/webrtc/lib/$TARGET_CPU/$cfg
     find . -name '*.so' -o -name '*.dll' -o -name '*.lib' -o -name '*.a' -o -name '*.jar' | \
     grep -E 'libwebrtc' | \
-    xargs -I '{}' $CP '{}' $outdir/$package_filename/lib/$TARGET_CPU/$cfg
+    xargs -I '{}' $CP '{}' $outdir/webrtc/lib/$TARGET_CPU/$cfg
     popd >/dev/null
   done
 
   popd >/dev/null
-}
-
-# This interprets a pattern and returns the interpreted one.
-function interpret-pattern() {
-  local pattern="$1"
-  local target_cpu="$2"
-
-  pattern=${pattern//%tc%/$target_cpu}
-
-  echo "$pattern"
 }
