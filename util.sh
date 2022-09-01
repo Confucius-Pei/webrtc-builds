@@ -85,7 +85,7 @@ function compile::ninja() {
   local gn_args="$2"
 
   echo "Generating project files with: $gn_args"
-  gn gen $outputdir --args="$gn_args"
+  gn gen $outputdir --args="$gn_args" -v
   pushd $outputdir >/dev/null
   # ninja -v -C  .
   ninja -C .
