@@ -117,7 +117,7 @@ function compile() {
   local configs="$2"
   local outputdir="$3"
 
-  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false"
+  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false is_crt_shared=true"
   local target_args="target_os=\"win\" target_cpu=\"$target_cpu\""
 
   pushd webrtc_src/src >/dev/null
