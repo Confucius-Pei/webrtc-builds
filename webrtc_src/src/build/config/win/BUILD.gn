@@ -470,7 +470,7 @@ config("default_crt") {
     # exceptions on.
     configs = [ ":dynamic_crt" ]
   } else {
-    if (current_os == "winuwp" || is_crt_shared) {
+    if (current_os == "winuwp" || current_os == "win") {
       # https://blogs.msdn.microsoft.com/vcblog/2014/06/10/the-great-c-runtime-crt-refactoring/
       # contains a details explanation of what is happening with the Windows
       # CRT in Visual Studio releases related to Windows store applications.
@@ -487,11 +487,11 @@ config("default_crt") {
 # when the debug CRT is part of the bottleneck. This also avoids *implicitly*
 # defining _DEBUG.
 config("release_crt") {
-  if (is_component_build || is_crt_shared) {
+  #if (is_component_build) {
     cflags = [ "/MD" ]
-  } else {
-    cflags = [ "/MT" ]
-  }
+  #} else {
+  #  cflags = [ "/MT" ]
+  #}
 }
 
 config("dynamic_crt") {
