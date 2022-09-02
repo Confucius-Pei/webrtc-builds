@@ -113,14 +113,15 @@ function combine::static() {
 # Compile the libraries.
 #
 function compile() {
-  local target_cpu="$1"
-  local configs="$2"
-  local outputdir="$3"
+  local srcdir="$1"
+  local outputdir="$2"
+  local target_cpu="$3"
+  local configs="$4"
 
-  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false is_crt_shared=true"
+  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false"
   local target_args="target_os=\"win\" target_cpu=\"$target_cpu\""
 
-  pushd webrtc_src/src >/dev/null
+  pushd $srcdir/src >/dev/null
   for cfg in $configs; do
     [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
     compile::ninja "$outputdir/$target_cpu/$cfg" "$common_args $target_args"
@@ -132,20 +133,20 @@ function compile() {
 
 # Package a compiled build into an archive file in the output directory.
 function package::prepare() {
-  local outdir="$1"
-  local configs="$2"
+  local srcdir="$1"
+  local outdir="$2"
+  local configs="$3"
 
   CP='cp'
 
   # Create directory structure
   mkdir -p $outdir/webrtc/include
 
-  pushd webrtc_src >/dev/null
-  pushd src >/dev/null
+  pushd $srcdir/src >/dev/null
 
   local header_source_dir=.
 
-  # Copy header files, skip third_party dir
+  # Copy header files
   #find $header_source_dir -path './third_party' -prune -o -type f \( -name '*.h' \) -print | \
   find $header_source_dir -type f \( -name '*.h' \) -print | \
   xargs -I '{}' $CP --parents '{}' $outdir/webrtc/include
@@ -170,6 +171,4 @@ function package::prepare() {
     xargs -I '{}' $CP '{}' $outdir/webrtc/lib/$TARGET_CPU/$cfg
     popd >/dev/null
   done
-
-  popd >/dev/null
 }
