@@ -4,32 +4,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source $DIR/util.sh
 
-usage ()
-{
-cat << EOF
-
-Usage:
-   $0 [OPTIONS]
-
-WebRTC automated build script.
-
-OPTIONS:
-   -c TARGET CPU  The target cpu for cross-compilation. Default is 'x64'. Other values can be 'x86', 'arm64', 'arm'.
-   -n CONFIGS     Build configurations, space-separated. Default is 'Debug Release'. Other values can be 'Debug', 'Release'.
-   -d             Debug mode. Print all executed commands.
-   -h             Show this message
-EOF
-}
-
 while getopts :c:n OPTION; do
-  case $OPTION in
-  c) TARGET_CPU=$OPTARG ;;
-  n) CONFIGS=$OPTARG ;;
-  ?) usage; exit 1 ;;
-  esac
+   case $OPTION in
+   c) TARGET_CPU=$OPTARG ;;
+   n) CONFIGS=$OPTARG ;;
+   ?)
+      usage
+      exit 1
+      ;;
+   esac
 done
 
 DEBUG=${DEBUG:-0}
@@ -56,7 +42,7 @@ echo Checking build environment dependencies
 check::build::env
 
 echo Compiling WebRTC
-compile "$TARGET_CPU" "$CONFIGS" $OUTDIR 
+compile "$TARGET_CPU" "$CONFIGS" $OUTDIR
 
 echo "Packaging WebRTC"
 package::prepare $OUTDIR webrtc "$CONFIGS" $SRCDIR
