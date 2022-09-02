@@ -24,11 +24,3 @@ fork的项目，详细readme可以参考原项目
 # To compile with x86 libraries you would run:
 ./build.sh -c x86
 ```
-
-## Running tests
-
-Once you have compiled the libraries you can run a quick compile test to ensure build integrity:
-
-``` sh
-./test/run_tests.sh out/webrtc-17657-02ba69d-linux-x64
-```
