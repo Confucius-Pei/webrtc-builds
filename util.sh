@@ -118,12 +118,12 @@ function compile() {
   local target_cpu="$3"
   local configs="$4"
 
-  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false"
+  local common_args="rtc_include_tests=false treat_warnings_as_errors=false use_rtti=true is_component_build=false enable_iterator_debugging=false is_clang=false strip_debug_info=false symbol_level=2"
   local target_args="target_os=\"win\" target_cpu=\"$target_cpu\""
 
   pushd $srcdir/src >/dev/null
   for cfg in $configs; do
-    [ "$cfg" = 'Release' ] && common_args+=' is_debug=false strip_debug_info=true symbol_level=0'
+    [ "$cfg" = 'Release' ] && common_args+=' is_debug=false'
     compile::ninja "$outputdir/$target_cpu/$cfg" "$common_args $target_args"
 
     combine::static "$outputdir/$target_cpu/$cfg" libwebrtc
