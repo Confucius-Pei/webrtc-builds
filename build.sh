@@ -38,13 +38,16 @@ TARGET_CPU=${TARGET_CPU:-x64}
 
 echo "Target CPU: $TARGET_CPU"
 
+#Checking build environment dependencies
 echo Checking build environment dependencies
 check::build::env
 
+#Compiling WebRTC
 echo Compiling WebRTC
 compile $SRCDIR $OUTDIR "$TARGET_CPU" "$CONFIGS"
 
-echo "Packaging WebRTC"
-package::prepare $SRCDIR $OUTDIR "$CONFIGS"
+#Packaging WebRTC
+echo Packaging WebRTC
+package::package $SRCDIR $OUTDIR "$CONFIGS"
 
 echo Build successful

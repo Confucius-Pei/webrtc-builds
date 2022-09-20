@@ -132,7 +132,7 @@ function compile() {
 }
 
 # Package a compiled build into an archive file in the output directory.
-function package::prepare() {
+function package::package() {
   local srcdir="$1"
   local outdir="$2"
   local configs="$3"
